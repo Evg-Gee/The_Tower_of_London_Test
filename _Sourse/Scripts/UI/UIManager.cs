@@ -16,7 +16,7 @@ namespace Scripts
         [SerializeField] private GameObject levelSelectionPanel; 
 
         [SerializeField] private GameObject levelButtonPrefab; 
-        [SerializeField] private Transform[] levelButtonsParent; 
+        [SerializeField] private Transform levelButtonsParent; 
         [SerializeField] private TextMeshProUGUI moveCounterText; 
         [SerializeField] private GameObject completionPanel; 
         [SerializeField] private GameObject losePanel; 
@@ -131,19 +131,16 @@ public void ShowMainMenu()
 
         public void CreateLevelButtons(List<LevelData> levels, LevelSelector levelSelector)
         {
-            foreach (Transform parent in levelButtonsParent)
+            foreach (Transform child in levelButtonsParent)
             {
-                foreach (Transform child in parent)
-                {
-                    Destroy(child.gameObject);
-                }
+                Destroy(child.gameObject);                
             }
 
             for (int i = 0; i < levels.Count; i++)
             {
                 int levelIndex = i + 1; 
 
-                GameObject buttonObject = Instantiate(levelButtonPrefab, levelButtonsParent[i]);
+                GameObject buttonObject = Instantiate(levelButtonPrefab, levelButtonsParent);
                 Button button = buttonObject.GetComponent<Button>();
                 TextMeshProUGUI buttonText = button.GetComponentInChildren<TextMeshProUGUI>();
                 Image statusImage = buttonObject.transform.Find("StatusImage").GetComponent<Image>();
@@ -166,33 +163,43 @@ public void ShowMainMenu()
 
         public void UpdateLevelButtonVisuals()
         {
-            for (int parentIndex = 0; parentIndex < levelButtonsParent.Length; parentIndex++)
+            if (levelButtonsParent == null)
             {
-                Transform parent = levelButtonsParent[parentIndex];
+                Debug.LogError("levelButtonsParent is not assigned!");
+                return;
+            }
 
-                int childCount = parent.childCount;
-                for (int i = 0; i < childCount; i++)
+            int childCount = levelButtonsParent.childCount;
+
+            for (int i = 0; i < childCount; i++)
+            {
+                Transform child = levelButtonsParent.GetChild(i);
+
+                Button button = child.GetComponent<Button>();
+                TextMeshProUGUI buttonText = child.GetComponentInChildren<TextMeshProUGUI>();
+                Image statusImage = button.transform.Find("StatusImage")?.GetComponent<Image>();
+
+                if (button != null && buttonText != null)
                 {
-                    Transform child = parent.GetChild(i);
-                    Button button = child.GetComponent<Button>();
-                    TextMeshProUGUI buttonText = child.GetComponentInChildren<TextMeshProUGUI>();
-                    Image statusImage = button.transform.Find("StatusImage").GetComponent<Image>();
-                    if (button != null && buttonText != null)
-                    {
-                        int levelIndex = parentIndex * childCount + i + 1;
+                    int levelIndex = i + 1;
 
-                        if (PlayerProgress.IsLevelCompleted(levelIndex))
+                    if (PlayerProgress.IsLevelCompleted(levelIndex))
+                    {
+                        buttonText.color = Color.green;
+                        if (statusImage != null)
                         {
-                            buttonText.color = Color.green;
-                            statusImage.enabled = true;                           
-                            buttonText.text = $"Level {levelIndex}";                           
+                            statusImage.enabled = true;
                         }
-                        else
+                        buttonText.text = $"Level {levelIndex}";
+                    }
+                    else
+                    {
+                        if (statusImage != null)
                         {
                             statusImage.enabled = false;
-                            buttonText.color = Color.white;
-                            buttonText.text = $"Level {levelIndex}";
                         }
+                        buttonText.color = Color.white;
+                        buttonText.text = $"Level {levelIndex}";
                     }
                 }
             }
